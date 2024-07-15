@@ -54,7 +54,7 @@ exports.login = async (req, res) => {
         userDb.get('SELECT * FROM users WHERE username = ?', [username], async (err, row) => {
             if (err) {
                 console.error('Database error:', err);
-                return res.status(500).send('Error querying database');
+                return res.status(500).send('Error querying database'); 
             }
 
             if (!row) {
