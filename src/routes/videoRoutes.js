@@ -9,7 +9,7 @@ router.post('/hi',(req,res)=>{
     res.send("Hello");
 })
 
-router.post('/upload',authenticateToken ,upload.single('video'), videoController.uploadVideo);
+router.post('/upload',upload.single('video'), videoController.uploadVideo);
 router.post('/trim', authenticateToken,videoController.trimVideo);
 router.post('/concatenate', authenticateToken,videoController.concatenateVideos);
 

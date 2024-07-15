@@ -25,7 +25,7 @@ const userDb = new sqlite3.Database('./user.sqlite', (err) => {
     console.log('User Database connected');
     userDb.run(`CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT,
+      username TEXT UNIQUE,
       password TEXT,
       accessToken TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
