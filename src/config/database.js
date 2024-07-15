@@ -27,6 +27,7 @@ const userDb = new sqlite3.Database('./user.sqlite', (err) => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT,
       password TEXT,
+      accessToken TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   }

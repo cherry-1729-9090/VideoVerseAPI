@@ -11,7 +11,6 @@ exports.uploadVideo = (req, res) => {
     if (!req.file) {
       return res.status(400).send('No file uploaded');
     }
-  
     const { path: videoPath, filename, originalname } = req.file;
   
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
