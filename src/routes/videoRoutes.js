@@ -12,5 +12,6 @@ router.post('/hi',(req,res)=>{
 router.post('/upload',upload.single('video'), videoController.uploadVideo);
 router.post('/trim', authenticateToken,videoController.trimVideo);
 router.post('/concatenate', authenticateToken,videoController.concatenateVideos);
+router.get('/video/:token', videoController.serveVideo);
 
 module.exports = router;
