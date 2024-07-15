@@ -11,6 +11,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
       path TEXT,
       duration INTEGER,
       originalname TEXT,
+      userId INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   }
