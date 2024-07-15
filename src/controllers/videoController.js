@@ -35,6 +35,7 @@ exports.uploadVideo = (req, res) => {
   const authToken = req.headers.authorization;
   const accessToken = authToken.split(' ')[1];
   userDb.get('SELECT * FROM users WHERE accessToken = ?', [accessToken], (err, row) => {
+    console.log(accessToken);
     if (err) {
       console.error('Database error:', err);
       return res.status(500).send('Error querying database');

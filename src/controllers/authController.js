@@ -5,7 +5,7 @@ require('dotenv').config();
 
 exports.signup = async (req, res) => {
     const { username, password } = req.body;
-
+    console.log(username)
     try {
         if (!password) {
             return res.status(400).json({ message: 'Password is required' });
@@ -26,7 +26,7 @@ exports.signup = async (req, res) => {
 
             // If user doesn't exist and password is valid, proceed with signup
             const hashedPassword = await bcrypt.hash(password, 10);
-
+            console.log(username)
             userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function (err) {
                 if (err) {
                     console.error('Database error:', err);
