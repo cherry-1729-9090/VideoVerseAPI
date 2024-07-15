@@ -14,6 +14,16 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
       userId INTEGER,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Add this new table creation
+    db.run(`CREATE TABLE IF NOT EXISTS temp_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      video_id INTEGER,
+      token TEXT UNIQUE,
+      expiry_time DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(video_id) REFERENCES videos(id)
+    )`);
   }
 });
 
@@ -31,6 +41,6 @@ const userDb = new sqlite3.Database('./user.sqlite', (err) => {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
   }
-})
+});
 
 module.exports = { db, userDb };

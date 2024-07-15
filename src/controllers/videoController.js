@@ -5,9 +5,28 @@ const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const ffprobePath = require('@ffprobe-installer/ffprobe').path;
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 ffmpeg.setFfprobePath(ffprobePath);
+
+const generateTempLink = (videoId, expiryMinutes = 60) => {
+  const token = crypto.randomBytes(20).toString('hex');
+  const expiryTime = new Date(Date.now() + expiryMinutes * 60000);
+  
+  return new Promise((resolve, reject) => {
+    db.run('INSERT INTO temp_links (video_id, token, expiry_time) VALUES (?, ?, ?)', 
+        [videoId, token, expiryTime.toISOString()], (err) => {
+        if (err) {
+            console.error('Error saving temp link:', err);
+            reject(err);
+        } else {
+            // Replace 'your-domain.com' with your actual domain when hosting
+            resolve(`https://your-domain.com/video/${token}`);
+        }
+    });
+  });
+};
 
 exports.uploadVideo = (req, res) => {
   if (!req.file) {
@@ -43,11 +62,19 @@ exports.uploadVideo = (req, res) => {
       }
 
       if (row) {
-        return res.status(200).json({
-          message: 'Video already exists',
-          videoId: row.id,
-          path: videoPath
-        });
+        generateTempLink(row.id)
+          .then(tempLink => {
+            res.status(200).json({
+              message: 'Video already exists',
+              videoId: row.id,
+              path: videoPath,
+              tempLink: tempLink
+            });
+          })
+          .catch(err => {
+            console.error('Error generating temp link:', err);
+            res.status(500).send('Error generating temporary link');
+          });
       } else {
         db.run('INSERT INTO videos (filename, path, duration, originalname) VALUES (?, ?, ?, ?)',
           [filename, videoPath, duration, originalname], function (err) {
@@ -56,10 +83,18 @@ exports.uploadVideo = (req, res) => {
               return res.status(500).send('Error saving to database');
             }
 
-            res.status(200).json({
-              message: 'Video uploaded successfully',
-              videoId: this.lastID
-            });
+            generateTempLink(this.lastID)
+              .then(tempLink => {
+                res.status(200).json({
+                  message: 'Video uploaded successfully',
+                  videoId: this.lastID,
+                  tempLink: tempLink
+                });
+              })
+              .catch(err => {
+                console.error('Error generating temp link:', err);
+                res.status(500).send('Error generating temporary link');
+              });
           });
       }
     });
@@ -115,7 +150,7 @@ const trimVideo2 = (videoId, startSeconds, endSeconds, res) => {
         '-c:a aac',
         '-preset ultrafast',
         '-movflags +faststart',
-        '-max_muxing_queue_size 9999'  // Add this line
+        '-max_muxing_queue_size 9999'
       ])
       .output(outputPath)
       .on('start', (command) => {
@@ -126,10 +161,26 @@ const trimVideo2 = (videoId, startSeconds, endSeconds, res) => {
       })
       .on('end', () => {
         console.log('Video trimming completed');
-        res.status(200).json({
-          message: 'Video trimmed successfully',
-          trimmedVideoPath: outputPath
-        });
+        db.run('INSERT INTO videos (filename, path, duration) VALUES (?, ?, ?)',
+          [path.basename(outputPath), outputPath, endSeconds - startSeconds], function (err) {
+            if (err) {
+              console.error('Database error:', err);
+              return res.status(500).send('Error saving trimmed video to database');
+            }
+
+            generateTempLink(this.lastID)
+              .then(tempLink => {
+                res.status(200).json({
+                  message: 'Video trimmed successfully',
+                  trimmedVideoPath: outputPath,
+                  tempLink: tempLink
+                });
+              })
+              .catch(err => {
+                console.error('Error generating temp link:', err);
+                res.status(500).send('Error generating temporary link');
+              });
+          });
       })
       .on('error', (err, stdout, stderr) => {
         console.error('FFmpeg error:', err);
@@ -144,7 +195,6 @@ const trimVideo2 = (videoId, startSeconds, endSeconds, res) => {
   });
 };
 
-
 exports.concatenateVideos = (req, res) => {
   const { videoIds } = req.body;
 
@@ -157,21 +207,19 @@ exports.concatenateVideos = (req, res) => {
       const outputPath = path.join('uploads', `concatenated_${Date.now()}.mp4`);
       const tempDir = path.join('uploads', 'temp');
 
-      // Ensure temp directory exists
       if (!fs.existsSync(tempDir)) {
           fs.mkdirSync(tempDir, { recursive: true });
       }
 
-      // First, standardize all videos
       const standardizationPromises = inputPaths.map((inputPath, index) => {
           return new Promise((resolve, reject) => {
               const standardizedPath = path.join(tempDir, `standardized_${index}.mp4`);
               ffmpeg(inputPath)
                   .outputOptions([
-                      '-vf', 'scale=1280:720,fps=24',  // Standardize to 720p and 24fps
+                      '-vf', 'scale=1280:720,fps=24',
                       '-c:v', 'libx264',
                       '-c:a', 'aac',
-                      '-ar', '44100',  // Standardize audio sample rate
+                      '-ar', '44100',
                       '-strict', 'experimental'
                   ])
                   .output(standardizedPath)
@@ -183,7 +231,6 @@ exports.concatenateVideos = (req, res) => {
 
       Promise.all(standardizationPromises)
           .then(standardizedPaths => {
-              // Now concatenate the standardized videos
               const command = ffmpeg();
               standardizedPaths.forEach(path => {
                   command.input(path);
@@ -204,12 +251,28 @@ exports.concatenateVideos = (req, res) => {
                   })
                   .on('end', () => {
                       console.log('Concatenation finished');
-                      // Clean up temp files
                       standardizedPaths.forEach(fs.unlinkSync);
-                      res.status(200).json({
-                          message: 'Videos concatenated successfully',
-                          outputPath: outputPath
-                      });
+                      
+                      db.run('INSERT INTO videos (filename, path) VALUES (?, ?)',
+                        [path.basename(outputPath), outputPath], function (err) {
+                          if (err) {
+                            console.error('Database error:', err);
+                            return res.status(500).send('Error saving concatenated video to database');
+                          }
+
+                          generateTempLink(this.lastID)
+                            .then(tempLink => {
+                              res.status(200).json({
+                                message: 'Videos concatenated successfully',
+                                outputPath: outputPath,
+                                tempLink: tempLink
+                              });
+                            })
+                            .catch(err => {
+                              console.error('Error generating temp link:', err);
+                              res.status(500).send('Error generating temporary link');
+                            });
+                        });
                   })
                   .mergeToFile(outputPath, tempDir);
           })
@@ -222,8 +285,6 @@ exports.concatenateVideos = (req, res) => {
           });
   });
 };
-
-
 
 exports.serveVideo = (req, res) => {
   const { token } = req.params;
@@ -276,20 +337,4 @@ exports.serveVideo = (req, res) => {
           }
       });
   });
-};
-
-
-const generateTempLink = (videoId, expiryMinutes = 60) => {
-  const token = crypto.randomBytes(20).toString('hex');
-  const expiryTime = new Date(Date.now() + expiryMinutes * 60000);
-  
-  db.run('INSERT INTO temp_links (video_id, token, expiry_time) VALUES (?, ?, ?)', 
-      [videoId, token, expiryTime.toISOString()], (err) => {
-      if (err) {
-          console.error('Error saving temp link:', err);
-      }
-  });
-
-  // Replace 'your-domain.com' with your actual domain when hosting
-  return `https://your-domain.com/video/${token}`;
 };

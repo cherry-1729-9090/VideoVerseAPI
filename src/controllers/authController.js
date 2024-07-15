@@ -25,7 +25,7 @@ exports.signup = async (req, res) => {
             }
 
             // If user doesn't exist and password is valid, proceed with signup
-            const hashedPassword = await bcrypt.hash(password, 10); // Use appropriate salt rounds
+            const hashedPassword = await bcrypt.hash(password, 10);
 
             userDb.run('INSERT INTO users (username, password) VALUES (?, ?)', [username, hashedPassword], function (err) {
                 if (err) {
