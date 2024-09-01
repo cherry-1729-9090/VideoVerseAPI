@@ -70,10 +70,13 @@ exports.login = async (req, res) => {
                         if (err.message.includes('no such column: accessToken')) {
                             // If accessToken column doesn't exist, add it
                             userDb.run('ALTER TABLE users ADD COLUMN accessToken TEXT', (alterErr) => {
+
+
                                 if (alterErr) {
                                     console.error('Error adding accessToken column:', alterErr);
                                     return res.status(500).send('Error updating database structure');
                                 }
+
                                 // Try updating again after adding the column
                                 userDb.run('UPDATE users SET accessToken = ? WHERE id = ?', [accessToken, row.id], (updateErr) => {
                                     if (updateErr) {
@@ -82,17 +85,22 @@ exports.login = async (req, res) => {
                                     }
                                     res.status(200).json({ accessToken });
                                 });
+
                             });
                         } else {
                             return res.status(500).send('Error updating database');
                         }
+
+
                     } else {
                         res.status(200).json({ accessToken });
                     }
                 });
+
             } else {
                 return res.status(400).send('Invalid password');
             }
+            
         });
     } catch (error) {
         console.error('Error in login:', error);

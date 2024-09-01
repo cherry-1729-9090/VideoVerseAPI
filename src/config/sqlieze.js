@@ -1,4 +1,3 @@
-const { model } = require('mongoose');
 const {Seqlielize} = require('sequelize');
 
 const db = new Seqlielize({

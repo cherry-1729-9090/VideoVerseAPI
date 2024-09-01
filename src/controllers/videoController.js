@@ -21,7 +21,6 @@ const generateTempLink = (videoId, expiryMinutes = 60) => {
             console.error('Error saving temp link:', err);
             reject(err);
         } else {
-            // Replace 'your-domain.com' with your actual domain when hosting
             resolve(`https://your-domain.com/video/${token}`);
         }
     });
@@ -48,7 +47,9 @@ exports.uploadVideo = (req, res) => {
 
   const { path: videoPath, filename, originalname } = req.file;
 
+  
   ffmpeg.ffprobe(videoPath, (err, metadata) => {
+
     if (err) {
       console.error('FFprobe error:', err);
       return res.status(500).send('Error processing video');
