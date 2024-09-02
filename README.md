@@ -70,28 +70,28 @@ All video processing endpoints require authentication. Include the JWT in the Au
 
 ## Work flow
 1. After starting the server we need to signup first using username and a password.
-![alt text](image-1.png)
+![alt text](assets/image-1.png)
 
 2. Then we need to login using the same email and password. Then we will get an `accessToken` which we need to store for security purposes and accessing our own vedios.
-![alt text](image.png)
+![alt text](assets/image.png)
 
 3. Then we need to put that `accessToken` in the Authorization of type `Bearer Token`. So whenver we use to upload/trim/concatenate the vidoe the server verifies our identity.
-![alt text](image-2.png)
+![alt text](assets/image-2.png)
 
 4. If we need to upload the video, we need to put the video in `form-data` or `binary`.
-![alt text](image-3.png)
+![alt text](assets/image-3.png)
     We get this response 
-    ![alt text](image-4.png)
+    ![alt text](assets/image-4.png)
 
 5. If we need to trim the video, we need to give the videoId, start and end.
-   ![alt text](image-5.png)
+   ![alt text](assets/image-5.png)
    You will get the response like this.
-   ![alt text](image-6.png)
+   ![alt text](assets/image-6.png)
 
 6. If we need to concatenate the videos we need to give the username, videoIds like this.
-    ![alt text](image-9.png)
+    ![alt text](assets/image-9.png)
     You will get the response like this.
-    ![alt text](image-8.png)
+    ![alt text](assets/image-8.png)
 
 
 
